@@ -1,3 +1,4 @@
+import { createServer } from 'http';
 import {
   Client,
   Events,
@@ -191,4 +192,11 @@ process.on('unhandledRejection', (error: any) => {
 console.log('🤖 Starting Kalshi Discord Bot');
 console.log('📊 Platform: Kalshi Prediction Markets');
 console.log('🎯 Features: Browse markets, link accounts, place bets, track portfolio');
+
+// Health-check server required by Railway (and similar hosts) to confirm the process is alive
+const PORT = process.env.PORT || 3000;
+createServer((_, res) => { res.writeHead(200); res.end('OK'); }).listen(PORT, () => {
+  console.log(`🌐 Health check listening on port ${PORT}`);
+});
+
 client.login(CLIENT_TOKEN);
