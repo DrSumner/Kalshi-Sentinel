@@ -33,8 +33,6 @@ export const positionsCommand = new SlashCommandBuilder()
   );
 
 export async function executePositions(interaction: CommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const userId = interaction.user.id;
   const username = interaction.user.username;
   const positionType = ((interaction.options as any).getString('type') || 'all').toLowerCase();
@@ -145,7 +143,7 @@ export async function executePositions(interaction: CommandInteraction) {
 ├─ Orders: **${pos.resting_orders_count}**
 └─ Fees Paid: \`$${(parseFloat(pos.fees_paid_dollars) || 0).toFixed(2)}\`
 
-🔔 Use \`/alert set ${pos.ticker} yes <percentage>\` to get price alerts
+� Share: \`/share ticker:${pos.ticker}\`
 `;
       }
 

@@ -45,3 +45,13 @@ export {
   stoplossCommand,
   executeStopLoss,
 } from './stoploss.js';
+
+export {
+  helpCommand,
+  executeHelp,
+} from './help.js';
+
+export {
+  shareCommand,
+  executeShare,
+} from './share.js';

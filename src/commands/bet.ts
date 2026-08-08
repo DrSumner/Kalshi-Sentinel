@@ -64,8 +64,6 @@ export const betCommand = new SlashCommandBuilder()
   );
 
 export async function executeBet(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const userId = interaction.user.id;
   const username = interaction.user.username;
 

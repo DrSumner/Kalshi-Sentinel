@@ -41,7 +41,7 @@ export class KalshiAPIClient {
   private baseUrl: string;
   private apiKey: string;
 
-  constructor(apiKey: string, baseUrl: string = 'https://api.kalshi.com/trade-api/v2') {
+  constructor(apiKey: string, baseUrl: string = `${process.env.KALSHI_BASE_URL || 'https://demo-api.kalshi.co'}/trade-api/v2`) {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
     this.client = axios.create({
@@ -57,7 +57,7 @@ export class KalshiAPIClient {
   /**
    * Get list of markets
    */
-  async getMarkets(filters?: { status?: string; category?: string }): Promise<KalshiMarket[]> {
+  async getMarkets(filters?: { status?: string }): Promise<KalshiMarket[]> {
     try {
       const response = await this.client.get('/markets', { params: filters });
       return response.data.markets || [];
@@ -143,7 +143,8 @@ export class KalshiAPIClient {
   }
 }
 
-// Export singleton instance
+// Singleton for unauthenticated public endpoints (markets browsing)
 export const kalshiAPIClient = new KalshiAPIClient(
-  process.env.KALSHI_API_KEY || ''
+  process.env.KALSHI_API_KEY || '',
+  `${process.env.KALSHI_BASE_URL || 'https://demo-api.kalshi.co'}/trade-api/v2`
 );

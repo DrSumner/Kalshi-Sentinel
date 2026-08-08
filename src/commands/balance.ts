@@ -21,8 +21,6 @@ export const balanceCommand = new SlashCommandBuilder()
   .setDescription('Check your Kalshi account balance');
 
 export async function executeBalance(interaction: CommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const userId = interaction.user.id;
   const username = interaction.user.username;
 

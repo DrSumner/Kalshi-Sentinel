@@ -22,8 +22,6 @@ export const portfolioCommand = new SlashCommandBuilder()
   .setDescription('View your Kalshi portfolio');
 
 export async function executePortfolio(interaction: CommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const userId = interaction.user.id;
   const username = interaction.user.username;
 

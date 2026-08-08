@@ -30,8 +30,6 @@ export const settlementsCommand = new SlashCommandBuilder()
   );
 
 export async function executeSettlements(interaction: CommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const userId = interaction.user.id;
   const username = interaction.user.username;
   const limit = (interaction.options as any).getInteger('limit') || 20;

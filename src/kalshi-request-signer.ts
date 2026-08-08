@@ -13,6 +13,22 @@ export interface SignedHeaders {
   [key: string]: string; // Allow index signature for axios
 }
 
+// Reconstructs a valid PEM key from potentially mangled input (e.g. Discord modal stripping newlines)
+export function normalizePemKey(pem: string): string {
+  pem = pem.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+  if (pem.split('\n').length > 2) return pem; // Already has line breaks — looks fine
+
+  const headerMatch = pem.match(/-----BEGIN [A-Z ]+-----/);
+  const footerMatch = pem.match(/-----END [A-Z ]+-----/);
+  if (!headerMatch || !footerMatch) return pem;
+
+  const header = headerMatch[0];
+  const footer = footerMatch[0];
+  const base64 = pem.slice(pem.indexOf(header) + header.length, pem.lastIndexOf(footer)).replace(/\s/g, '');
+  const chunks = base64.match(/.{1,64}/g) ?? [];
+  return `${header}\n${chunks.join('\n')}\n${footer}`;
+}
+
 /**
  * Sign a Kalshi API request
  * @param method GET, POST, etc
@@ -33,33 +49,31 @@ export function signKalshiRequest(
   const timestampMs = Date.now();
   const timestampStr = timestampMs.toString();
 
-  // Build message to sign: timestamp + method + path + (optional body)
-  let msgString = timestampStr + method + apiPath;
-
-  // For POST/PUT with body, append body hash
-  if (body && (method === 'POST' || method === 'PUT')) {
-    const bodyStr = JSON.stringify(body);
-    const bodyHash = crypto.createHash('sha256').update(bodyStr).digest('hex');
-    msgString = timestampStr + method + apiPath + bodyHash;
-  }
-
-  console.log(`🔐 Signing request: ${method} ${apiPath}`);
-  console.log(`   Timestamp: ${timestampStr}`);
-  console.log(`   Message: ${msgString.substring(0, 50)}...`);
+  // Kalshi signing message: timestamp + METHOD + path (no body hash, strip query params)
+  const pathWithoutQuery = apiPath.split('?')[0];
+  const msgString = timestampStr + method + pathWithoutQuery;
 
   try {
+    // Normalize the PEM key in case newlines were mangled by Discord modal input
+    const normalizedKey = normalizePemKey(privateKey);
+
     // Create RSA-PSS signature
     const sign = crypto.createSign('RSA-SHA256');
     sign.update(msgString);
     sign.end();
 
     const signature = sign.sign({
-      key: privateKey,
+      key: normalizedKey,
       padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
       saltLength: crypto.constants.RSA_PSS_SALTLEN_DIGEST,
     });
 
     const signatureBase64 = signature.toString('base64');
+
+    // Debug: log signing details (no private key content)
+    console.log(`🔐 Signing: "${msgString}"`);
+    console.log(`🔑 Key ID: ${apiKey}`);
+    console.log(`📋 Key header: ${normalizedKey.split('\n')[0]}`);
 
     const headers: SignedHeaders = {
       'KALSHI-ACCESS-KEY': apiKey,
@@ -74,9 +88,6 @@ export function signKalshiRequest(
   }
 }
 
-/**
- * Make a signed GET request to Kalshi API
- */
 export async function makeSignedGetRequest(
   apiPath: string,
   apiKey: string,
@@ -86,18 +97,16 @@ export async function makeSignedGetRequest(
   const headers = signKalshiRequest('GET', apiPath, apiKey, privateKey, null);
 
   try {
-    console.log(`📤 GET ${baseUrl}${apiPath}`);
     const response = await axios.get(baseUrl + apiPath, { 
       headers,
-      timeout: 15000, // 15 second timeout
+      timeout: 15000,
     });
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.error(`❌ API Error: ${error.response?.status} - ${error.message}`);
-      if (error.response?.data) {
-        console.error('Response data:', error.response.data);
-      }
+      const errBody = error.response?.data;
+      console.error(`❌ Kalshi API ${error.response?.status} on ${apiPath}`);
+      console.error('❌ Kalshi error body:', JSON.stringify(errBody, null, 2));
     } else {
       console.error('❌ Request error:', error);
     }

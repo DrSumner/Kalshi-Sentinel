@@ -50,14 +50,20 @@ export async function executeLink(interaction: CommandInteraction) {
  * Handle modal submission for linking Kalshi account
  */
 export async function handleLinkModal(interaction: any) {
-  const kalshiApiKey = interaction.fields.getTextInputValue('kalshi_api_key');
-  const kalshiPrivateKey = interaction.fields.getTextInputValue('kalshi_private_key');
+  const kalshiApiKey = interaction.fields.getTextInputValue('kalshi_api_key').trim();
+  const kalshiPrivateKey = interaction.fields.getTextInputValue('kalshi_private_key').trim();
+
+  // Acknowledge the modal immediately so Discord doesn't timeout
+  try {
+    await interaction.deferReply({ ephemeral: true });
+  } catch {
+    return; // Modal interaction already expired
+  }
 
   try {
-    // Link the account with BOTH API Key and Private Key (no username needed)
     await kalshiUserManager.linkKalshiAccount(
       interaction.user.id,
-      interaction.user.username, // Use Discord username as display name
+      interaction.user.username,
       kalshiApiKey,
       kalshiPrivateKey
     );
@@ -67,30 +73,25 @@ export async function handleLinkModal(interaction: any) {
       .setTitle('✅ Account Linked!')
       .setDescription(`Successfully linked your Kalshi account to Discord`)
       .addFields(
-        { 
-          name: '🔐 Security', 
-          value: 'Your API Key and Private Key are encrypted and stored securely.\n\nThey are never logged or displayed in plain text.',
-          inline: false 
+        {
+          name: '🔐 Security',
+          value: 'Your API Key and Private Key are encrypted and stored securely.',
+          inline: false,
         },
-        { 
-          name: '🎯 Next Steps', 
-          value: 'Use `/markets` to view predictions and `/bet` to place bets!',
-          inline: false 
+        {
+          name: '🎯 Next Steps',
+          value: 'Use `/balance` to verify the connection, then `/markets` to browse!',
+          inline: false,
         }
       )
-      .setFooter({ text: 'Your credentials are safe with AES-256-GCM encryption' });
+      .setFooter({ text: 'Credentials encrypted with AES-256-GCM' });
 
-    await interaction.reply({
-      embeds: [embed],
-      ephemeral: true,
-    });
-
+    await interaction.editReply({ embeds: [embed] });
     console.log(`✅ Linked Kalshi account for ${interaction.user.username}`);
   } catch (error) {
     console.error('Error linking Kalshi account:', error);
-    await interaction.reply({
+    await interaction.editReply({
       content: '❌ Failed to link account. Please check your credentials and try again.',
-      ephemeral: true,
     });
   }
 }

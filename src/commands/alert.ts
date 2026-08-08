@@ -78,18 +78,6 @@ export async function executeAlert(interaction: CommandInteraction) {
   const userId = interaction.user.id;
 
   try {
-    // Reply immediately to prevent Discord timeout (3 second window)
-    try {
-      if (!interaction.replied) {
-        await interaction.reply({
-          content: '⏳ Processing...',
-          ephemeral: true,
-        });
-      }
-    } catch (replyErr) {
-      console.error('Failed to reply to interaction:', replyErr);
-      return; // Exit if we can't reply
-    }
 
     if (subcommand === 'set') {
       await handleSetAlert(interaction, userId);
@@ -101,7 +89,7 @@ export async function executeAlert(interaction: CommandInteraction) {
   } catch (error) {
     console.error('Error in alert command:', error);
     // Only try to edit if we have a valid interaction
-    if (interaction.replied) {
+    if (interaction.deferred || interaction.replied) {
       try {
         await interaction.editReply({
           content: `❌ **Error!** ${error instanceof Error ? error.message : 'Unknown error'}`,
